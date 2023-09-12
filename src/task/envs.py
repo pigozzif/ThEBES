@@ -45,7 +45,7 @@ class CartPoleHard(EnvWrapper):
     CART_X_LIMIT = 2.4
 
     def __init__(self):
-        super().__init__("CartPole-v1", g=9.81)
+        super().__init__("CartPole-v1")
 
     def reset(self, **kwargs):
         # Set custom initial conditions here
