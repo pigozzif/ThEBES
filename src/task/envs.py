@@ -16,7 +16,7 @@ class EnvWrapper(gym.Env):
         self.action_space = self.env.action_space
 
     def set_seed(self, seed):
-        self.env.np_random = seeding(seed)
+        self.env.np_random = seeding(seed)[0]
 
     def get_max_steps(self):
         return self.env.spec.max_episode_steps

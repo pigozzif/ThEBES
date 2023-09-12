@@ -63,9 +63,13 @@ class ConvPolicy(MLPPolicy):
         self.history = []
 
     def act(self, obs):
-        obs = cv2.cvtColor(obs, cv2.COLOR_RGB2GRAY)
+        obs = cv2.cvtColor(obs[0], cv2.COLOR_RGB2GRAY)
         obs = cv2.resize(obs, (84, 84), interpolation=cv2.INTER_LINEAR)
         self.history.append(obs)
-        if len(self.history) > 4:
+        if len(self.history) == 1:
+            self.history.append(obs)
+            self.history.append(obs)
+            self.history.append(obs)
+        elif len(self.history) > 4:
             self.history.pop(0)
-        super().act(obs=np.stack([self.history], axis=-1))
+        super().act(obs=np.stack(self.history, axis=-1))

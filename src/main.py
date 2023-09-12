@@ -59,12 +59,12 @@ def evaluate(config, solution, seed, render=False):
     env = create_task(config=config)
     env.set_seed(seed)
     policy = create_policy(config=config, env=env)
-    obs = env.reset()
+    obs = env.reset()[0]
     policy.set_params(params=solution)
     fitness = 0.0
     for i in range(env.get_max_steps()):
         action = policy.act(obs=obs)
-        obs, reward, done, info = env.step(action=action)
+        obs, reward, done, *_ = env.step(action=action)
         fitness += reward
         if done:
             _ = env.reset()
