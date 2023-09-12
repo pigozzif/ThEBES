@@ -17,7 +17,7 @@ class SimulationManager(object):
     def _parallel_wrapper(self, arg):
         c, solution, i, test = arg
         fitness = self.evaluation(config=c, solution=solution, seed=i if test else c.s)
-        return i, -fitness
+        return i, fitness
 
     def test_solution(self, solution):
         with multiprocessing.Pool(self.config.np) as pool:
