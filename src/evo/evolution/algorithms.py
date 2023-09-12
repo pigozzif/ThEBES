@@ -91,7 +91,9 @@ class RandomSearch(StochasticSolver):
                                                                         mu=0.0,
                                                                         sigma=sigma)
         self.best_fitness = objectives_dict[0]["worst_value"]
-        self.best = Individual(id=0, genotype=np.zeros(num_params), comparator=self.comparator)
+        self.best = Individual(id=0,
+                               genotype=self.genetic_operator.apply([np.zeros(num_params)]),
+                               comparator=self.comparator)
         self.move = None
 
     def ask(self):
