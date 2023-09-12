@@ -9,7 +9,7 @@ class Filter(object):
 
     @classmethod
     def create_filter(cls, name: str):
-        if name is None:
+        if name == "none":
             return NoneFilter()
         raise ValueError("Invalid filter: {}".format(name))
 
