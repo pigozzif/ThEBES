@@ -71,7 +71,7 @@ class MountainCar(EnvWrapper):
 class BipedalWalker(EnvWrapper):
 
     def __init__(self):
-        super().__init__("BipedalWalker-v3", hard=False)
+        super().__init__("BipedalWalker-v3")
 
     def reset(self, **kwargs):
         return self.env.reset()
