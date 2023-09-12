@@ -43,12 +43,15 @@ def parallel_solve(solver, config, listener):
             # score_std = np.std(test_scores)
             listener.listen(**{"iteration": j, "elapsed.sec": time.time() - start_time,
                                "evaluations": evaluated, "best.fitness": result[1],
-                               "best.solution": "/".join([str(x) for x in result[0]])})
+                               "best.solution": "/".join([])})
         if result[1] >= best_fitness or best_result is None:
             best_result = result[0]
             best_fitness = result[1]
         evaluated += len(solutions)
         j += 1
+    listener.listen(**{"iteration": j, "elapsed.sec": time.time() - start_time,
+                       "evaluations": evaluated, "best.fitness": best_fitness,
+                       "best.solution": "/".join([str(x) for x in best_result])})
     return best_result, best_fitness
 
 

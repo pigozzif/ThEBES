@@ -21,6 +21,12 @@ class EnvWrapper(gym.Env):
     def get_max_steps(self):
         return self.env.spec.max_episode_steps
 
+    def get_max_fitness(self):
+        return self.env.reward_range[1] * self.get_max_steps()
+
+    def get_min_fitness(self):
+        return self.env.reward_range[0] * self.get_max_steps()
+
     @abc.abstractmethod
     def reset(self, **kwargs):
         pass
@@ -75,6 +81,15 @@ class LunarLander(EnvWrapper):
 
     def __init__(self):
         super().__init__("LunarLander-v2", continuous=True, gravity=-9.81, enable_wind=False)
+
+    def reset(self, **kwargs):
+        return self.env.reset()
+
+
+class CarRacing(EnvWrapper):
+
+    def __init__(self):
+        super().__init__("CarRacing-v2", domain_randomize=False)
 
     def reset(self, **kwargs):
         return self.env.reset()

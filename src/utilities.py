@@ -1,7 +1,7 @@
 from policy.policy import ConvPolicy, MLPPolicy
 from evo.evolution.algorithms import OpenAIES, ThEBES, CMAES, RandomSearch
 from evo.evolution.objectives import ObjectiveDict
-from task.envs import CartPoleHard, BipedalWalker, LunarLander, MountainCar
+from task.envs import CartPoleHard, BipedalWalker, LunarLander, MountainCar, CarRacing
 
 
 def is_classic(task):
@@ -10,7 +10,11 @@ def is_classic(task):
 
 def create_solver(config):
     objectives_dict = ObjectiveDict()
-    objectives_dict.add_objective(name="fitness_score", maximize=False, best_value=0.0, worst_value=5.0)
+    dummy_env = create_task(config=config)
+    objectives_dict.add_objective(name="fitness",
+                                  maximize=True,
+                                  best_value=dummy_env.get_max_fitness(),
+                                  worst_value=dummy_env.get_min_fitness())
     pop_size = get_pop_size(task=config.task)
     num_params = get_number_of_params(config=config)
     if config.solver == "openes":
@@ -60,6 +64,8 @@ def create_task(config):
         return LunarLander()
     elif task_name == "mountain":
         return MountainCar()
+    elif task_name == "car":
+        return CarRacing()
     raise ValueError("Invalid task name: {}".format(task_name))
 
 

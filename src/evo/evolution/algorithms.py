@@ -95,15 +95,20 @@ class RandomSearch(StochasticSolver):
         self.move = None
 
     def ask(self):
+        if self.best.fitness is None:
+            return [self.best.genotype]
         self.move = Individual(id=0,
-                               genotype=self.genetic_operator.apply(tuple(self.best.genotype)),
+                               genotype=self.genetic_operator.apply([self.best.genotype]),
                                comparator=self.comparator)
         return [self.move.genotype]
 
     def tell(self, fitness_list):
-        self.move.fitness = {"fitness": fitness_list[0]}
-        if self.comparator.compare(ind1=self.best, ind2=self.move) == -1:
-            self.best = self.move
+        if self.move is None:
+            self.best.fitness = {"fitness": fitness_list[0]}
+        else:
+            self.move.fitness = {"fitness": fitness_list[0]}
+            if self.comparator.compare(ind1=self.best, ind2=self.move) == -1:
+                self.best = self.move
 
     def result(self):
         return self.best.genotype, self.best.fitness["fitness"]
@@ -245,7 +250,7 @@ class OpenAIES(PopulationBasedSolver):
 
     def _update_mode(self) -> None:
         noise = np.array([(x.genotype - self.mode) / self.sigma for x in self.pop])
-        fitness = np.array([x.fitness["fitness_score"] for x in self.pop])
+        fitness = np.array([x.fitness["fitness"] for x in self.pop])
         best_idx = np.argmin(fitness)
         self.best_fitness, self.best_genotype = fitness[best_idx], (noise[best_idx] * self.sigma) + self.mode
         theta_grad = (1.0 / (self.pop_size * self.sigma)) * np.dot(noise.T, fitness)
