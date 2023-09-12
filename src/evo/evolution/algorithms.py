@@ -86,7 +86,10 @@ class RandomSearch(StochasticSolver):
     def __init__(self, seed, num_params, sigma, objectives_dict):
         super().__init__(seed, num_params, 1)
         self.comparator = Comparator.create_comparator(name="lexicase", objective_dict=objectives_dict)
-        self.genetic_operator = GeneticOperator.create_genetic_operator(name="gaussian_mut", mu=0.0, sigma=sigma)
+        self.genetic_operator = GeneticOperator.create_genetic_operator(name="gaussian_mut",
+                                                                        genotype_filter=Filter.create_filter("none"),
+                                                                        mu=0.0,
+                                                                        sigma=sigma)
         self.best_fitness = objectives_dict[0]["worst_value"]
         self.best = Individual(id=0, genotype=np.zeros(num_params), comparator=self.comparator)
         self.move = None
