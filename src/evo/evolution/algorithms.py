@@ -237,7 +237,7 @@ class OpenAIES(PopulationBasedSolver):
         self.optimizer = Adam(num_dims=num_params, l_rate_init=l_rate_init, l_rate_decay=l_rate_decay,
                               l_rate_limit=l_rate_limit)
         self.mode = np.zeros(num_params)
-        self.best_fitness = float("inf")
+        self.best_fitness = float("-inf")
         self.best_genotype = None
 
     def _sample_offspring(self):
@@ -246,6 +246,7 @@ class OpenAIES(PopulationBasedSolver):
         return [self.mode + x * self.sigma for x in z]
 
     def ask(self):
+        self.pop.clear()
         for child_genotype in self._sample_offspring():
             self.pop.add_individual(genotype=child_genotype)
         return [ind.genotype for ind in self.pop if not ind.evaluated]
