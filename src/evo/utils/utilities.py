@@ -33,3 +33,10 @@ def exp_decay(param, param_decay, param_limit):
     """Exponentially decay parameter and clip by minimal value."""
     param = param * param_decay
     return max(param, param_limit)
+
+
+def reshape_fitness(fitness):
+    if isinstance(fitness, list):
+        fitness = np.array(fitness)
+    reshaped = np.argsort(np.argsort(fitness))
+    return (reshaped / len(fitness)) - 0.5

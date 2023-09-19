@@ -12,7 +12,7 @@ from .selection.filters import Filter
 from .selection.selector import Selector
 from ..representations.factory import GenotypeFactory
 from ..representations.population import Population, Individual, Comparator
-from ..utils.utilities import weighted_random_by_dct, exp_decay
+from ..utils.utilities import weighted_random_by_dct, exp_decay, reshape_fitness
 
 
 class StochasticSolver(abc.ABC):
@@ -237,7 +237,7 @@ class OpenAIES(PopulationBasedSolver):
         self.optimizer = Adam(num_dims=num_params, l_rate_init=l_rate_init, l_rate_decay=l_rate_decay,
                               l_rate_limit=l_rate_limit)
         self.mode = np.zeros(num_params)
-        self.best_fitness = float("-inf")
+        self.best_fitness = float("inf")
         self.best_genotype = None
 
     def _sample_offspring(self):
@@ -254,9 +254,11 @@ class OpenAIES(PopulationBasedSolver):
     def _update_mode(self) -> None:
         noise = np.array([(x.genotype - self.mode) / self.sigma for x in self.pop])
         fitness = np.array([x.fitness["fitness"] for x in self.pop])
-        best_idx = np.argmin(fitness)
-        self.best_fitness, self.best_genotype = fitness[best_idx], (noise[best_idx] * self.sigma) + self.mode
-        theta_grad = (1.0 / (self.pop_size * self.sigma)) * np.dot(noise.T, fitness)
+        reshaped_fitness = reshape_fitness(fitness=fitness)
+        best_idx = np.argmin(reshaped_fitness)
+        if self.best_fitness >= fitness[best_idx]:
+            self.best_fitness, self.best_genotype = fitness[best_idx], (noise[best_idx] * self.sigma) + self.mode
+        theta_grad = (1.0 / (self.pop_size * self.sigma)) * np.dot(noise.T, reshaped_fitness)
         self.mode = self.optimizer.optimize(mean=self.mode,
                                             t=self.pop.gen,
                                             theta_grad=theta_grad)
@@ -295,6 +297,8 @@ class CMAES(StochasticSolver):
         self.sigma_init = sigma_init
         self.solutions = None
         self.it = 0
+        self.best_fitness = float("inf")
+        self.best_genotype = None
 
         import cma
         self.es = cma.CMAEvolutionStrategy(self.num_params * [0], self.sigma_init, {"popsize": self.pop_size})
@@ -305,11 +309,14 @@ class CMAES(StochasticSolver):
         return self.solutions
 
     def tell(self, fitness_list):
-        self.es.tell(self.solutions, [-f for f in fitness_list])
+        reshaped_fitness = reshape_fitness(fitness=fitness_list)
+        self.es.tell(self.solutions, reshaped_fitness)
+        best_idx = np.argmin(reshaped_fitness)
+        if self.best_fitness >= fitness_list[best_idx]:
+            self.best_fitness, self.best_genotype = fitness_list[best_idx], self.es.result
 
     def result(self):
-        r = self.es.result
-        return r[0], r[1]
+        return self.best_genotype, self.best_fitness
 
     def get_num_evaluated(self):
         return self.it * self.pop_size

@@ -19,7 +19,7 @@ def parse_args():
     parser.add_argument("--evals", type=int, default=120000, help="fitness evaluations")
     parser.add_argument("--hidden-size", type=int, default=64, help="policy hidden size")
     parser.add_argument("--num-tests", type=int, default=100, help="number of test rollouts")
-    parser.add_argument("--test-interval", type=int, default=1, help="test interval")
+    parser.add_argument("--test-interval", type=int, default=10, help="test interval")
     parser.add_argument("--log-interval", type=int, default=20, help="logging interval")
     parser.add_argument("--task", type=str, default="car", help="task")
     return parser.parse_args()
@@ -40,9 +40,9 @@ def parallel_solve(solver, config, listener):
         result = solver.result()  # first element is the best solution, second element is the best fitness
         if (j + 1) % config.test_interval == 0:
             logging.warning("fitness at iteration {}: {}".format(j + 1, result[1]))
-            listener.listen(**{"iteration": j, "elapsed.sec": time.time() - start_time,
-                               "evaluations": evaluated, "best.fitness": result[1], "avg.test": np.nan,
-                               "std.test": np.nan, "best.solution": "/".join([])})
+        listener.listen(**{"iteration": j, "elapsed.sec": time.time() - start_time,
+                           "evaluations": evaluated, "best.fitness": result[1], "avg.test": np.nan,
+                           "std.test": np.nan, "best.solution": np.nan})
         if result[1] >= best_fitness or best_result is None:
             best_result = result[0]
             best_fitness = result[1]
@@ -58,6 +58,8 @@ def parallel_solve(solver, config, listener):
 
 
 def evaluate(config, solution, seed, render=False):
+    import random
+    return random.random()
     env = create_task(config=config)
     env.set_seed(seed)
     policy = create_policy(config=config, env=env)
@@ -74,7 +76,7 @@ def evaluate(config, solution, seed, render=False):
         elif render:
             env.render()
     env.close()
-    return fitness
+    return -fitness
 
 
 if __name__ == "__main__":
