@@ -41,9 +41,9 @@ def parallel_solve(solver, config, listener):
         if (j + 1) % config.test_interval == 0:
             logging.warning("fitness at iteration {}: {}".format(j + 1, result[1]))
         listener.listen(**{"iteration": j, "elapsed.sec": time.time() - start_time,
-                           "evaluations": evaluated, "best.fitness": result[1], "avg.test": np.nan,
+                           "evaluations": evaluated, "best.fitness": -result[1], "avg.test": np.nan,
                            "std.test": np.nan, "best.solution": np.nan})
-        if result[1] >= best_fitness or best_result is None:
+        if result[1] <= best_fitness or best_result is None:
             best_result = result[0]
             best_fitness = result[1]
         evaluated += len(solutions)
@@ -52,14 +52,12 @@ def parallel_solve(solver, config, listener):
     score_avg = np.mean(test_scores)
     score_std = np.std(test_scores)
     listener.listen(**{"iteration": j, "elapsed.sec": time.time() - start_time,
-                       "evaluations": evaluated, "best.fitness": best_fitness, "avg.test": score_avg,
+                       "evaluations": evaluated, "best.fitness": -best_fitness, "avg.test": score_avg,
                        "std.test": score_std, "best.solution": "/".join([str(x) for x in best_result])})
     return best_result, best_fitness
 
 
 def evaluate(config, solution, seed, render=False):
-    import random
-    return random.random()
     env = create_task(config=config)
     env.set_seed(seed)
     policy = create_policy(config=config, env=env)
