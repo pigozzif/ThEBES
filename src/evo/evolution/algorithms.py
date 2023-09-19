@@ -313,7 +313,7 @@ class CMAES(StochasticSolver):
         self.es.tell(self.solutions, reshaped_fitness)
         best_idx = np.argmin(reshaped_fitness)
         if self.best_fitness >= fitness_list[best_idx]:
-            self.best_fitness, self.best_genotype = fitness_list[best_idx], self.es.result
+            self.best_fitness, self.best_genotype = fitness_list[best_idx], self.es.result.xbest
 
     def result(self):
         return self.best_genotype, self.best_fitness
