@@ -39,18 +39,18 @@ def parallel_solve(solver, config, listener):
         results = sim.eval_solutions(solutions=solutions)
         fitness_list = [value for _, value in sorted(results, key=lambda x: x[0])]
         solver.tell(fitness_list)
-        result = solver.result()  # first element is the best solution, second element is the best fitness
+        result = sorted(results, key=lambda x: x[0])[0]
         if (j + 1) % config.test_interval == 0:
-            logging.warning("fitness at iteration {}: {}".format(j + 1, result[1]))
+            logging.warning("fitness at iteration {}: {}".format(j + 1, result[0]))
         listener.listen(**{"iteration": j, "elapsed.sec": time.time() - start_time,
-                           "evaluations": evaluated, "best.fitness": -result[1], "avg.test": np.nan,
+                           "evaluations": evaluated, "best.fitness": -result[0], "avg.test": np.nan,
                            "std.test": np.nan, "best.solution": np.nan})
-        if result[1] <= best_fitness or best_result is None:
-            best_result = result[0]
-            best_fitness = result[1]
+        if result[0] <= best_fitness or best_result is None:
+            best_result = result[1]
+            best_fitness = result[0]
         evaluated += len(solutions)
         j += 1
-    test_scores = -sim.test_solution(solution=result[0])
+    test_scores = -sim.test_solution(solution=result[1])
     score_avg = np.mean(test_scores)
     score_std = np.std(test_scores)
     listener.listen(**{"iteration": j, "elapsed.sec": time.time() - start_time,
