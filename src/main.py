@@ -48,7 +48,7 @@ def parallel_solve(solver, config, listener):
             best_fitness = result[1]
         evaluated += len(solutions)
         j += 1
-    test_scores = sim.test_solution(solution=result[0])
+    test_scores = -sim.test_solution(solution=result[0])
     score_avg = np.mean(test_scores)
     score_std = np.std(test_scores)
     listener.listen(**{"iteration": j, "elapsed.sec": time.time() - start_time,

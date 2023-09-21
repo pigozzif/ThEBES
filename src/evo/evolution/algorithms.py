@@ -301,7 +301,7 @@ class CMAES(StochasticSolver):
         self.best_genotype = None
 
         import cma
-        self.es = cma.CMAEvolutionStrategy(self.num_params * [0], self.sigma_init, {"popsize": self.pop_size})
+        self.es = cma.CMAEvolutionStrategy(self.num_params * [0], sigma_init, {"popsize": self.pop_size})
 
     def ask(self):
         self.solutions = self.es.ask()

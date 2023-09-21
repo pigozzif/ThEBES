@@ -45,7 +45,7 @@ def create_solver(config):
         return CMAES(seed=config.s,
                      num_params=num_params,
                      pop_size=pop_size,
-                     sigma_init=0.03 if is_classic(task=config.task) else 0.04)
+                     sigma_init=0.1)  # 0.03 if is_classic(task=config.task) else 0.04)
     elif config.solver == "rs":
         return RandomSearch(seed=config.s,
                             num_params=num_params,
