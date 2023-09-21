@@ -22,6 +22,8 @@ def parse_args():
     parser.add_argument("--test-interval", type=int, default=10, help="test interval")
     parser.add_argument("--log-interval", type=int, default=20, help="logging interval")
     parser.add_argument("--task", type=str, default="car", help="task")
+    parser.add_argument("--sigma", type=float, default=0.1, help="step size")
+    parser.add_argument("--l-rate", type=float, default=0.01, help="learning rate")
     return parser.parse_args()
 
 

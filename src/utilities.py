@@ -22,12 +22,12 @@ def create_solver(config):
                         num_params=num_params,
                         pop_size=pop_size,
                         objectives_dict=objectives_dict,
-                        sigma=0.03 if is_classic(task=config.task) else 0.04,
+                        sigma=config.sigma,  # 0.03 if is_classic(task=config.task) else 0.04,
                         sigma_decay=0.999,
-                        sigma_limit=0.01 if is_classic(task=config.task) else 0.001,
-                        l_rate_init=0.02 if is_classic(task=config.task) else 0.01,
+                        sigma_limit=0.01,   #if is_classic(task=config.task) else 0.001,
+                        l_rate_init=config.l_rate,  # 0.02 if is_classic(task=config.task) else 0.01,
                         l_rate_decay=0.999,
-                        l_rate_limit=0.001 if is_classic(task=config.task) else 0.005
+                        l_rate_limit=0.001  # if is_classic(task=config.task) else 0.005
                         )
     elif config.solver == "thebes":
         return ThEBES(seed=config.s,
@@ -45,7 +45,7 @@ def create_solver(config):
         return CMAES(seed=config.s,
                      num_params=num_params,
                      pop_size=pop_size,
-                     sigma_init=0.1)  # 0.03 if is_classic(task=config.task) else 0.04)
+                     sigma_init=config.sigma)  # 0.03 if is_classic(task=config.task) else 0.04)
     elif config.solver == "rs":
         return RandomSearch(seed=config.s,
                             num_params=num_params,
