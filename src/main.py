@@ -10,7 +10,8 @@ from evo.listeners.listener import FileListener
 from task.sim import SimulationManager
 from utilities import create_task, create_policy, create_solver
 
-
+# cmaes: 0.2 (bipedal), 0.2 (lunar)
+# openes: n/a (bipedal), 0.2 (lunar)
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--s", type=int, default=0, help="seed")
@@ -39,18 +40,20 @@ def parallel_solve(solver, config, listener):
         results = sim.eval_solutions(solutions=solutions)
         fitness_list = [value for _, value in sorted(results, key=lambda x: x[0])]
         solver.tell(fitness_list)
-        result = sorted(results, key=lambda x: x[0])[0]
+        result_idx, result_f = sorted(results, key=lambda x: x[1])[0]
+        result_g = solutions[result_idx]
         if (j + 1) % config.test_interval == 0:
-            logging.warning("fitness at iteration {}: {}".format(j + 1, result[0]))
+            logging.warning("fitness at iteration {}: {}".format(j + 1, result_f))
         listener.listen(**{"iteration": j, "elapsed.sec": time.time() - start_time,
-                           "evaluations": evaluated, "best.fitness": -result[0], "avg.test": np.nan,
+                           "evaluations": evaluated, "best.fitness": -result_f, "avg.test": np.nan,
                            "std.test": np.nan, "best.solution": np.nan})
-        if result[0] <= best_fitness or best_result is None:
-            best_result = result[1]
-            best_fitness = result[0]
+        if result_f <= best_fitness or best_result is None:
+            best_result = result_g
+            best_fitness = result_f
         evaluated += len(solutions)
         j += 1
-    test_scores = -sim.test_solution(solution=result[1])
+    # print(result)
+    test_scores = - np.array(sim.test_solution(solution=result_g))
     score_avg = np.mean(test_scores)
     score_std = np.std(test_scores)
     listener.listen(**{"iteration": j, "elapsed.sec": time.time() - start_time,
