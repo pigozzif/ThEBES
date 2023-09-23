@@ -300,23 +300,20 @@ class CMAES(StochasticSolver):
         self.best_fitness = float("inf")
         self.best_genotype = None
 
-        import cmaes
-        self.es = cmaes.CMA(mean=np.zeros(num_params), sigma=sigma_init, seed=seed, population_size=pop_size)
+        import cma
+        self.es = cma.CMAEvolutionStrategy(self.num_params * [0], self.sigma_init, {"popsize": self.pop_size})
 
     def ask(self):
-        self.solutions = [self.es.ask() for _ in range(self.pop_size)]
+        self.solutions = self.es.ask()
         self.it += 1
         return self.solutions
 
     def tell(self, fitness_list):
-        reshaped_fitness = reshape_fitness(fitness=fitness_list)
-        self.es.tell(list(zip(self.solutions, reshaped_fitness)))
-        best_idx = np.argmin(reshaped_fitness)
-        if self.best_fitness >= fitness_list[best_idx]:
-            self.best_fitness, self.best_genotype = fitness_list[best_idx], self.solutions[best_idx]
+        self.es.tell(self.solutions, [-f for f in fitness_list])
 
     def result(self):
-        return self.best_genotype, self.best_fitness
+        r = self.es.result
+        return r[0], r[1]
 
     def get_num_evaluated(self):
         return self.it * self.pop_size
