@@ -43,7 +43,7 @@ def parallel_solve(solver, config, listener):
         result_idx, result_f = sorted(results, key=lambda x: x[1])[0]
         result_g = solutions[result_idx]
         if (j + 1) % config.test_interval == 0:
-            logging.warning("fitness at iteration {}: {}".format(j + 1, result_f))
+            logging.warning("fitness at iteration {}: {}".format(j + 1, -result_f))
         listener.listen(**{"iteration": j, "elapsed.sec": time.time() - start_time,
                            "evaluations": evaluated, "best.fitness": -result_f, "avg.test": np.nan,
                            "std.test": np.nan, "best.solution": np.nan})
@@ -52,7 +52,6 @@ def parallel_solve(solver, config, listener):
             best_fitness = result_f
         evaluated += len(solutions)
         j += 1
-    # print(result)
     test_scores = - np.array(sim.test_solution(solution=result_g))
     score_avg = np.mean(test_scores)
     score_std = np.std(test_scores)
