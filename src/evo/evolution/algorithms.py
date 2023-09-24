@@ -319,6 +319,49 @@ class CMAES(StochasticSolver):
         return self.it * self.pop_size
 
 
+class xNES(StochasticSolver):
+
+    def __init__(self, seed, num_params, pop_size, sigma, l_rate=0.01):
+        super().__init__(seed, num_params, pop_size)
+        self.solutions = None
+        self.zs = None
+        self.sigma = sigma
+        self.eta_mu = 1
+        self.eta_A = 0.6 * (3 + np.log(num_params)) * num_params ** -1.5
+        self.us = np.maximum(0, np.log(pop_size / 2 + 1) - np.log(1 + np.arange(pop_size)))
+        self.us /= np.sum(self.us)
+        self.us -= 1 / pop_size
+        self.mu = np.zeros(num_params)
+        self.cov_matrix = np.eye(num_params) * sigma
+        self.l_rate = l_rate
+        self.cov_matrix = np.eye(num_params)
+        self.best_fitness = float("inf")
+        self.best_genotype = None
+
+    def ask(self):
+        self.zs = np.array([np.random.normal(0, 1, self.num_params) for _ in range(self.pop_size)])
+        self.solutions = np.array([self.mu + np.dot(self.cov_matrix, self.zs[i]) for i in range(self.pop_size)])
+        return self.solutions
+
+    def tell(self, fitness_list):
+        order = np.argsort(fitness_list)
+        self.zs = self.zs[order]
+        gd = np.dot(self.us, self.zs)
+        self.mu += self.eta_mu * np.dot(self.cov_matrix, gd)
+        best_idx = np.argmin(fitness_list)
+        if self.best_fitness >= fitness_list[best_idx]:
+            self.best_fitness, self.best_genotype = fitness_list[best_idx], self.solutions[best_idx]
+        gm = np.dot(
+            np.array([np.outer(z, z).T - np.eye(self.num_params) for z in self.zs]).T,
+            self.us)
+        gs = np.trace(gm) / self.num_params
+        gb = gm - gs * np.eye(self.num_params)
+        self.cov_matrix *= np.exp(0.5 * self.eta_A * gs) * np.exp(0.5 * self.eta_A * gb)
+
+    def result(self):
+        return self.best_genotype, self.best_fitness
+
+
 class NSGAII(PopulationBasedSolver):
 
     def __init__(self, seed, pop_size, genotype_factory, offspring_size: int, remap, genetic_operators,

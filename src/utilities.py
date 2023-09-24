@@ -1,5 +1,5 @@
 from policy.policy import ConvPolicy, MLPPolicy
-from evo.evolution.algorithms import OpenAIES, ThEBES, CMAES, RandomSearch
+from evo.evolution.algorithms import OpenAIES, ThEBES, CMAES, RandomSearch, xNES
 from evo.evolution.objectives import ObjectiveDict
 from task.envs import CartPoleHard, BipedalWalker, LunarLander, MountainCar, CarRacing
 
@@ -46,6 +46,11 @@ def create_solver(config):
                      num_params=num_params,
                      pop_size=pop_size,
                      sigma_init=config.sigma)  # 0.03 if is_classic(task=config.task) else 0.04)
+    elif config.solver == "xnes":
+        return xNES(seed=config.s,
+                    num_params=num_params,
+                    pop_size=pop_size,
+                    sigma=config.sigma)
     elif config.solver == "rs":
         return RandomSearch(seed=config.s,
                             num_params=num_params,
