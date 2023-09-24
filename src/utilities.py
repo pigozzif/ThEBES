@@ -15,7 +15,7 @@ def create_solver(config):
                                   maximize=True,
                                   best_value=dummy_env.get_max_fitness(),
                                   worst_value=dummy_env.get_min_fitness())
-    pop_size = get_pop_size(task=config.task)
+    pop_size = get_pop_size(config)
     num_params = get_number_of_params(config=config)
     if config.solver == "openes":
         return OpenAIES(seed=config.s,
@@ -54,8 +54,10 @@ def create_solver(config):
     elif config.solver == "rs":
         return RandomSearch(seed=config.s,
                             num_params=num_params,
-                            sigma=0.03 if is_classic(task=config.task) else 0.05,
-                            objectives_dict=objectives_dict)
+                            pop_size=pop_size,
+                            objectives_dict=objectives_dict,
+                            range_min=-5.0,
+                            range_max=5.0)
     raise ValueError("Invalid solver name: {}".format(config.solver))
 
 
@@ -120,7 +122,9 @@ def get_number_of_params(config):
     return input_dim * config.hidden_size + config.hidden_size + config.hidden_size * output_dim + output_dim
 
 
-def get_pop_size(task):
-    if is_classic(task=task):
+def get_pop_size(config):
+    if is_classic(task=config.task):
         return 100
+    elif "rs" in config.solver:
+        return 1024
     return 256

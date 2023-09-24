@@ -81,39 +81,41 @@ class PopulationBasedSolver(StochasticSolver, ABC):
         return self.pop.get_best()
 
 
-class RandomSearch(StochasticSolver):
+class RandomSearch(PopulationBasedSolver):
 
-    def __init__(self, seed, num_params, sigma, objectives_dict):
-        super().__init__(seed, num_params, 1)
-        self.comparator = Comparator.create_comparator(name="lexicase", objective_dict=objectives_dict)
-        self.genetic_operator = GeneticOperator.create_genetic_operator(name="gaussian_mut",
-                                                                        genotype_filter=Filter.create_filter("none"),
-                                                                        mu=0.0,
-                                                                        sigma=sigma)
-        self.best_fitness = objectives_dict[0]["worst_value"]
-        self.best = Individual(id=0,
-                               genotype=self.genetic_operator.apply([np.zeros(num_params)]),
-                               comparator=self.comparator)
-        self.move = None
+    def __init__(self, seed, num_params, pop_size, objectives_dict, range_min, range_max):
+        super().__init__(seed=seed,
+                         num_params=num_params,
+                         pop_size=pop_size,
+                         genotype_factory="uniform_float",
+                         objectives_dict=objectives_dict,
+                         remap=False,
+                         genetic_operators={},
+                         genotype_filter="none",
+                         comparator="lexicase",
+                         range=(range_min, range_max),
+                         n=num_params)
+        self.best_fitness = float("inf")
+        self.best_genotype = None
 
     def ask(self):
-        if self.best.fitness is None:
-            return [self.best.genotype]
-        self.move = Individual(id=0,
-                               genotype=self.genetic_operator.apply([self.best.genotype]),
-                               comparator=self.comparator)
-        return [self.move.genotype]
+        if self.pop.gen > 0:
+            for g in self.pop.init_random_individuals(n=self.pop_size):
+                self.pop.add_individual(g)
+        return [ind.genotype for ind in self.pop]
 
     def tell(self, fitness_list):
-        if self.move is None:
-            self.best.fitness = {"fitness": fitness_list[0]}
-        else:
-            self.move.fitness = {"fitness": fitness_list[0]}
-            if self.comparator.compare(ind1=self.best, ind2=self.move) == -1:
-                self.best = self.move
+        for ind, f in zip([ind for ind in self.pop if not ind.evaluated], fitness_list):
+            ind.fitness = {"fitness": f}
+            ind.evaluated = True
+        best_idx = np.argmin(fitness_list)
+        if self.best_fitness <= fitness_list[best_idx]:
+            self.best_fitness = fitness_list[best_idx]
+            self.best_genotype = self.pop[best_idx]
+        self.pop.clear()
 
     def result(self):
-        return self.best.genotype, self.best.fitness["fitness"]
+        return self.best_genotype, self.best_fitness
 
 
 class GeneticAlgorithm(PopulationBasedSolver):
