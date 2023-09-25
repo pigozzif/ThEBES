@@ -1,5 +1,5 @@
 from policy.policy import ConvPolicy, MLPPolicy
-from evo.evolution.algorithms import OpenAIES, ThEBES, CMAES, RandomSearch, xNES, CRFMNES, sNES
+from evo.evolution.algorithms import OpenAIES, ThEBES, CMAES, RandomSearch, xNES, CRFMNES, sNES, ASEBO
 from evo.evolution.objectives import ObjectiveDict
 from task.envs import CartPoleHard, BipedalWalker, LunarLander, MountainCar, CarRacing
 
@@ -27,8 +27,7 @@ def create_solver(config):
                         sigma_limit=0.01,   #if is_classic(task=config.task) else 0.001,
                         l_rate_init=config.l_rate,  # 0.02 if is_classic(task=config.task) else 0.01,
                         l_rate_decay=0.999,
-                        l_rate_limit=0.001  # if is_classic(task=config.task) else 0.005
-                        )
+                        l_rate_limit=0.001)  # if is_classic(task=config.task) else 0.005
     elif config.solver == "thebes":
         return ThEBES(seed=config.s,
                       num_params=num_params,
@@ -39,8 +38,7 @@ def create_solver(config):
                       sigma_limit=0.01 if is_classic(task=config.task) else 0.001,
                       l_rate_init=0.02 if is_classic(task=config.task) else 0.01,
                       l_rate_decay=0.999,
-                      l_rate_limit=0.001 if is_classic(task=config.task) else 0.005
-                      )
+                      l_rate_limit=0.001 if is_classic(task=config.task) else 0.005)
     elif config.solver == "cmaes":
         return CMAES(seed=config.s,
                      num_params=num_params,
@@ -60,6 +58,17 @@ def create_solver(config):
                        num_params=num_params,
                        pop_size=pop_size,
                        sigma=1)
+    elif config.solver == "asebo":
+        return ASEBO(seed=config.s,
+                     num_params=num_params,
+                     pop_size=pop_size,
+                     subspace_dims=50,
+                     l_rate_init=0.05,
+                     l_rate_decay=1.0,
+                     l_rate_limit=0.001,
+                     sigma_init=0.1,
+                     sigma_decay=1.0,
+                     sigma_limit=0.01)
     elif config.solver == "rs":
         return RandomSearch(seed=config.s,
                             num_params=num_params,

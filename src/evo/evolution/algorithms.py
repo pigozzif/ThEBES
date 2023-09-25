@@ -4,6 +4,10 @@ from abc import ABC
 from typing import Dict
 
 import numpy as np
+from sklearn.decomposition import PCA
+from scipy.linalg import cholesky
+from numpy.linalg import LinAlgError
+from numpy.random import standard_normal
 
 from .objectives import ObjectiveDict
 from .operators.operator import GeneticOperator
@@ -385,7 +389,7 @@ class sNES(StochasticSolver):
         return ranks
 
     def ask(self):
-        self.noise = np.random.multivariate_normal(np.zeros(self.num_params), np.eye(self.num_params), self.pop_size)
+        self.noise = np.random.multivariate_normal(np.zeros(self.num_params), np.diag(self.sigmas), self.pop_size)
         self.solutions = self.mean + self.sigmas * self.noise
         return self.solutions
 
@@ -416,7 +420,8 @@ class CRFMNES(StochasticSolver):
         self.v = kwargs.get('v', np.random.randn(self.num_params, 1) / np.sqrt(self.num_params))
         self.D = np.ones([self.num_params, 1])
 
-        self.w_rank_hat = (np.log(self.pop_size / 2 + 1) - np.log(np.arange(1, self.pop_size + 1))).reshape(self.pop_size, 1)
+        self.w_rank_hat = (np.log(self.pop_size / 2 + 1) - np.log(np.arange(1, self.pop_size + 1))).reshape(
+            self.pop_size, 1)
         self.w_rank_hat[np.where(self.w_rank_hat < 0)] = 0
         self.w_rank = self.w_rank_hat / sum(self.w_rank_hat) - (1. / self.pop_size)
         self.mueff = 1 / ((self.w_rank + (1 / self.pop_size)).T @ (self.w_rank + (1 / self.pop_size)))[0][0]
@@ -424,7 +429,8 @@ class CRFMNES(StochasticSolver):
         self.cc = (4. + self.mueff / self.num_params) / (self.num_params + 4. + 2. * self.mueff / self.num_params)
         self.c1_cma = 2. / ((self.num_params + 1.3) ** 2 + self.mueff)
         # initialization
-        self.chiN = np.sqrt(self.num_params) * (1. - 1. / (4. * self.num_params) + 1. / (21. * self.num_params * self.num_params))
+        self.chiN = np.sqrt(self.num_params) * (
+                1. - 1. / (4. * self.num_params) + 1. / (21. * self.num_params * self.num_params))
         self.pc = np.zeros([self.num_params, 1])
         self.ps = np.zeros([self.num_params, 1])
         # distance weight parameter
@@ -435,10 +441,13 @@ class CRFMNES(StochasticSolver):
         # learning rate
         self.eta_m = 1.0
         self.eta_move_sigma = 1.
-        self.eta_stag_sigma = lambda lambF: np.tanh((0.024 * lambF + 0.7 * self.num_params + 20.) / (self.num_params + 12.))
-        self.eta_conv_sigma = lambda lambF: 2. * np.tanh((0.025 * lambF + 0.75 * self.num_params + 10.) / (self.num_params + 4.))
+        self.eta_stag_sigma = lambda lambF: np.tanh(
+            (0.024 * lambF + 0.7 * self.num_params + 20.) / (self.num_params + 12.))
+        self.eta_conv_sigma = lambda lambF: 2. * np.tanh(
+            (0.025 * lambF + 0.75 * self.num_params + 10.) / (self.num_params + 4.))
         self.c1 = lambda lambF: self.c1_cma * (self.num_params - 5) / 6 * (float(lambF) / self.pop_size)
-        self.eta_B = lambda lambF: np.tanh((min(0.02 * lambF, 3 * np.log(self.num_params)) + 5) / (0.23 * self.num_params + 25))
+        self.eta_B = lambda lambF: np.tanh(
+            (min(0.02 * lambF, 3 * np.log(self.num_params)) + 5) / (0.23 * self.num_params + 25))
 
         self.g = 0
         self.no_of_evals = 0
@@ -510,7 +519,8 @@ class CRFMNES(StochasticSolver):
         ps_norm = np.linalg.norm(self.ps)
         # distance weight
         w_tmp = np.array(
-            [self.w_rank_hat[i] * self.w_dist_hat(np.array(self.z[:, i]), lambF) for i in range(self.pop_size)]).reshape(
+            [self.w_rank_hat[i] * self.w_dist_hat(np.array(self.z[:, i]), lambF) for i in
+             range(self.pop_size)]).reshape(
             self.pop_size, 1)
         weights_dist = w_tmp / sum(w_tmp) - 1. / self.pop_size
         # switching weights and learning rate
@@ -536,9 +546,11 @@ class CRFMNES(StochasticSolver):
         b = -(1 - alphavd ** 2) * normv4 / gammav + 2 * alphavd ** 2
         H = np.ones([self.num_params, 1]) * 2 - (b + 2 * alphavd ** 2) * vbarbar  # dim x 1
         invH = H ** (-1)
-        s_step1 = yy - self.normv2 / gammav * (yvbar * ip_yvbar) - np.ones([self.num_params, self.pop_size + 1])  # dim x lamb+1
+        s_step1 = yy - self.normv2 / gammav * (yvbar * ip_yvbar) - np.ones(
+            [self.num_params, self.pop_size + 1])  # dim x lamb+1
         ip_vbart = self.vbar.T @ t  # 1 x lamb+1
-        s_step2 = s_step1 - alphavd / gammav * ((2 + self.normv2) * (t * self.vbar) - self.normv2 * vbarbar @ ip_vbart)  # dim x lamb+1
+        s_step2 = s_step1 - alphavd / gammav * (
+                (2 + self.normv2) * (t * self.vbar) - self.normv2 * vbarbar @ ip_vbart)  # dim x lamb+1
         invHvbarbar = invH * vbarbar
         ip_s_step2invHvbarbar = invHvbarbar.T @ s_step2  # 1 x lamb+1
         s = (s_step2 * invH) - b / (
@@ -551,11 +563,90 @@ class CRFMNES(StochasticSolver):
         self.v = self.v + (t @ exw) / self.normv
         self.D = self.D + (s @ exw) * self.D
         # calculate detA
-        nthrootdetA = np.exp(np.sum(np.log(self.D)) / self.num_params + np.log(1 + self.v.T @ self.v) / (2 * self.num_params))[0][0]
+        nthrootdetA = \
+            np.exp(np.sum(np.log(self.D)) / self.num_params + np.log(1 + self.v.T @ self.v) / (2 * self.num_params))[0][
+                0]
         self.D = self.D / nthrootdetA
         # update sigma
         G_s = np.sum((self.z * self.z - np.ones([self.num_params, self.pop_size])) @ weights) / self.num_params
         self.sigma = self.sigma * np.exp(eta_sigma / 2 * G_s)
+
+    def result(self):
+        return self.best_genotype, self.best_fitness
+
+
+class ASEBO(StochasticSolver):
+
+    def __init__(self, seed, num_params, pop_size, subspace_dims, l_rate_init, l_rate_decay, l_rate_limit, sigma_init,
+                 sigma_decay, sigma_limit):
+        super().__init__(seed, num_params, pop_size)
+        self.it = 0
+        self.optimizer = Adam(num_dims=num_params, l_rate_init=l_rate_init, l_rate_decay=l_rate_decay,
+                              l_rate_limit=l_rate_limit)
+        self.subspace_dims = min(subspace_dims, self.num_params)
+        self.lrate_init = l_rate_init
+        self.lrate_decay = l_rate_decay
+        self.lrate_limit = l_rate_limit
+        self.sigma = sigma_init
+        self.sigma_decay = sigma_decay
+        self.sigma_limit = sigma_limit
+        self.alpha = 1.0
+        self.mean = np.zeros(self.num_params)
+        self.grad_subspace = np.zeros((self.subspace_dims, self.num_params))
+        self.uut = np.zeros((self.num_params, self.num_params)),
+        self.uut_ort = np.zeros((self.num_params, self.num_params))
+        self.solutions = None
+        self.best_fitness = float("inf")
+        self.best_genotype = None
+
+    def ask(self):
+        self.grad_subspace -= np.mean(self.grad_subspace, axis=0)
+        u, s, vt = np.linalg.svd(self.grad_subspace, full_matrices=False)
+
+        def svd_flip(u, v):
+            max_abs_cols = np.argmax(np.abs(u), axis=0)
+            signs = np.sign(u[max_abs_cols, np.arange(u.shape[1])])
+            u *= signs
+            v *= signs[:, np.newaxis]
+            return u, v
+
+        u, vt = svd_flip(u, vt)
+        u = vt[: int(self.pop_size / 2)]
+        self.uut = np.matmul(u.T, u)
+        u_ort = vt[int(self.pop_size / 2):]
+        self.uut_ort = np.matmul(u_ort.T, u_ort)
+        self.uut = self.uut if self.it > self.subspace_dims else np.zeros((self.num_params, self.num_params))
+        cov = (self.sigma * (self.alpha / self.num_params) * np.eye(self.num_params)
+               + ((1 - self.alpha) / int(self.pop_size / 2)) * self.uut
+               )
+        chol = np.linalg.cholesky(cov)
+        noise = np.random.normal(loc=0.0, scale=1.0, size=(self.num_params, int(self.pop_size / 2)))
+        z_plus = np.swapaxes(chol @ noise, 0, 1)
+        z_plus /= np.linalg.norm(z_plus, axis=-1)[:, np.newaxis]
+        z = np.concatenate([z_plus, -1.0 * z_plus])
+        self.solutions = self.mean + z
+        return self.solutions
+
+    def tell(self, fitness_list):
+        fitness_list = np.array(fitness_list)
+        noise = (self.solutions - self.mean) / self.sigma
+        noise_1 = noise[: int(self.pop_size / 2)]
+        fit_1 = fitness_list[: int(self.pop_size / 2)]
+        fit_2 = fitness_list[int(self.pop_size / 2):]
+        fit_diff_noise = np.dot(noise_1.T, fit_1 - fit_2)
+        theta_grad = 1.0 / 2.0 * fit_diff_noise
+        self.alpha = np.linalg.norm(
+            np.dot(theta_grad, self.uut_ort)
+        ) / np.linalg.norm(np.dot(theta_grad, self.uut)) if self.it > self.subspace_dims else 1.0
+        self.grad_subspace[:-1, :] = self.grad_subspace[1:, :]
+        self.grad_subspace[-1, :] = np.zeros(self.num_params)
+        self.grad_subspace[-1, :] = theta_grad
+        theta_grad /= np.linalg.norm(theta_grad) / self.num_params + 1e-8
+        self.mean = self.optimizer.optimize(mean=self.mean,
+                                            t=self.it,
+                                            theta_grad=theta_grad)
+        self.sigma = exp_decay(self.sigma, self.sigma_decay, self.sigma_limit)
+        self.it += 1
 
     def result(self):
         return self.best_genotype, self.best_fitness
