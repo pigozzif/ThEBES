@@ -1,5 +1,5 @@
 from policy.policy import ConvPolicy, MLPPolicy
-from evo.evolution.algorithms import OpenAIES, ThEBES, CMAES, RandomSearch, xNES
+from evo.evolution.algorithms import OpenAIES, ThEBES, CMAES, RandomSearch, xNES, CRFMNES, sNES
 from evo.evolution.objectives import ObjectiveDict
 from task.envs import CartPoleHard, BipedalWalker, LunarLander, MountainCar, CarRacing
 
@@ -51,6 +51,15 @@ def create_solver(config):
                     num_params=num_params,
                     pop_size=pop_size,
                     sigma=config.sigma)
+    elif config.solver == "snes":
+        return sNES(seed=config.s,
+                    num_params=num_params,
+                    pop_size=pop_size)
+    elif config.solver == "crfmnes":
+        return CRFMNES(seed=config.s,
+                       num_params=num_params,
+                       pop_size=pop_size,
+                       sigma=1)
     elif config.solver == "rs":
         return RandomSearch(seed=config.s,
                             num_params=num_params,

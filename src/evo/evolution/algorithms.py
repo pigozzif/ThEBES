@@ -364,6 +364,203 @@ class xNES(StochasticSolver):
         return self.best_genotype, self.best_fitness
 
 
+class sNES(StochasticSolver):
+
+    def __init__(self, seed, num_params, pop_size, init_l_rate=1.0, init_sigma=1.0):
+        super().__init__(seed, num_params, pop_size)
+        self.mean_l_rate = init_l_rate
+        self.cov_l_rate = 0.6 * (3 + np.log(self.num_params)) / 3 / np.sqrt(self.num_params)
+        self.sigmas = np.full(self.num_params, fill_value=init_sigma)
+        self.mean = np.zeros(num_params)
+        self.cov_matrix = np.eye(num_params)
+        self.noise = None
+        self.solutions = None
+        self.best_genotype = None
+        self.best_fitness = float("inf")
+
+    def _compute_utilities(self, fitness_list):
+        ranks = np.maximum(0.0, np.log(self.pop_size / 2 + 1) - np.log(self.pop_size - np.argsort(fitness_list)))
+        ranks /= np.sum(ranks)
+        ranks -= 1 / self.pop_size
+        return ranks
+
+    def ask(self):
+        self.noise = np.random.multivariate_normal(np.zeros(self.num_params), np.eye(self.num_params), self.pop_size)
+        self.solutions = self.mean + self.sigmas * self.noise
+        return self.solutions
+
+    def tell(self, fitness_list):
+        self.noise = self.noise[np.argsort(fitness_list)]
+        us = self._compute_utilities(fitness_list=fitness_list)
+        gradient_mean = np.dot(us, self.noise)
+        gradient_cov = np.dot(us, (self.noise ** 2 - 1))
+        best_idx = np.argmin(fitness_list)
+        if self.best_fitness >= fitness_list[best_idx]:
+            self.best_fitness, self.best_genotype = fitness_list[best_idx], self.solutions[best_idx]
+        self.mean += self.mean_l_rate * self.sigmas * gradient_mean
+        self.sigmas *= np.exp(0.5 * self.cov_l_rate * gradient_cov)
+
+    def result(self):
+        return self.best_genotype, self.best_fitness
+
+
+class CRFMNES(StochasticSolver):
+
+    def __init__(self, seed, num_params, pop_size, sigma, **kwargs):
+        super().__init__(seed, num_params, pop_size)
+        self.m = np.zeros([num_params, 1])
+        self.sigma = sigma
+        assert (self.pop_size > 0 and self.pop_size % 2 == 0), f"The value of 'lamb' must be an even, positive " \
+                                                               f"integer greater than 0 "
+
+        self.v = kwargs.get('v', np.random.randn(self.num_params, 1) / np.sqrt(self.num_params))
+        self.D = np.ones([self.num_params, 1])
+
+        self.w_rank_hat = (np.log(self.pop_size / 2 + 1) - np.log(np.arange(1, self.pop_size + 1))).reshape(self.pop_size, 1)
+        self.w_rank_hat[np.where(self.w_rank_hat < 0)] = 0
+        self.w_rank = self.w_rank_hat / sum(self.w_rank_hat) - (1. / self.pop_size)
+        self.mueff = 1 / ((self.w_rank + (1 / self.pop_size)).T @ (self.w_rank + (1 / self.pop_size)))[0][0]
+        self.cs = (self.mueff + 2.) / (self.num_params + self.mueff + 5.)
+        self.cc = (4. + self.mueff / self.num_params) / (self.num_params + 4. + 2. * self.mueff / self.num_params)
+        self.c1_cma = 2. / ((self.num_params + 1.3) ** 2 + self.mueff)
+        # initialization
+        self.chiN = np.sqrt(self.num_params) * (1. - 1. / (4. * self.num_params) + 1. / (21. * self.num_params * self.num_params))
+        self.pc = np.zeros([self.num_params, 1])
+        self.ps = np.zeros([self.num_params, 1])
+        # distance weight parameter
+        self.h_inv = self.get_h_inv()
+        self.alpha_dist = lambda lambF: self.h_inv * min(1., np.sqrt(float(self.pop_size) / self.num_params)) * np.sqrt(
+            float(lambF) / self.pop_size)
+        self.w_dist_hat = lambda z, lambF: np.exp(self.alpha_dist(lambF) * np.linalg.norm(z))
+        # learning rate
+        self.eta_m = 1.0
+        self.eta_move_sigma = 1.
+        self.eta_stag_sigma = lambda lambF: np.tanh((0.024 * lambF + 0.7 * self.num_params + 20.) / (self.num_params + 12.))
+        self.eta_conv_sigma = lambda lambF: 2. * np.tanh((0.025 * lambF + 0.75 * self.num_params + 10.) / (self.num_params + 4.))
+        self.c1 = lambda lambF: self.c1_cma * (self.num_params - 5) / 6 * (float(lambF) / self.pop_size)
+        self.eta_B = lambda lambF: np.tanh((min(0.02 * lambF, 3 * np.log(self.num_params)) + 5) / (0.23 * self.num_params + 25))
+
+        self.g = 0
+        self.no_of_evals = 0
+
+        self.idxp = np.arange(self.pop_size / 2, dtype=int)
+        self.idxm = np.arange(self.pop_size / 2, self.pop_size, dtype=int)
+        self.z = np.zeros([self.num_params, self.pop_size])
+        self.solutions = None
+        self.best_fitness = float('inf')
+        self.best_genotype = None
+
+    def get_h_inv(self):
+        f = lambda a, b: ((1. + a * a) * np.exp(a * a / 2.) / 0.24) - 10. - self.num_params
+        f_prime = lambda a: (1. / 0.24) * a * np.exp(a * a / 2.) * (3. + a * a)
+        h_inv = 6.0
+        while abs(f(h_inv, self.num_params)) > 1e-10:
+            last = h_inv
+            h_inv = h_inv - 0.5 * (f(h_inv, self.num_params) / f_prime(h_inv))
+            if abs(h_inv - last) < 1e-16:
+                # Exit early since no further improvements are happening
+                break
+        return h_inv
+
+    def sort_indices_by(self, evals, z):
+        lam = len(evals)
+        sorted_indices = np.argsort(evals)
+        sorted_evals = evals[sorted_indices]
+        no_of_feasible_solutions = np.where(sorted_evals != np.inf)[0].size
+        if no_of_feasible_solutions != lam:
+            infeasible_z = z[:, np.where(evals == np.inf)[0]]
+            distances = np.sum(infeasible_z ** 2, axis=0)
+            infeasible_indices = sorted_indices[no_of_feasible_solutions:]
+            indices_sorted_by_distance = np.argsort(distances)
+            sorted_indices[no_of_feasible_solutions:] = infeasible_indices[indices_sorted_by_distance]
+        return sorted_indices
+
+    def ask(self):
+        zhalf = np.random.randn(self.num_params, int(self.pop_size / 2))
+        self.z[:, self.idxp] = zhalf
+        self.z[:, self.idxm] = -zhalf
+        self.normv = np.linalg.norm(self.v)
+        self.normv2 = self.normv ** 2
+        self.vbar = self.v / self.normv
+        self.y = self.z + (np.sqrt(1 + self.normv2) - 1) * self.vbar @ (self.vbar.T @ self.z)
+        self.solutions = self.m + self.sigma * self.y * self.D
+        return self.solutions.T
+
+    def tell(self, fitness_list):
+        fitness_list = np.array(fitness_list)
+        sorted_indices = self.sort_indices_by(fitness_list, self.z)
+        best_eval_id = sorted_indices[0]
+        f_best = fitness_list[best_eval_id]
+        x_best = self.solutions[:, best_eval_id]
+        self.z = self.z[:, sorted_indices]
+        y = self.y[:, sorted_indices]
+        x = self.solutions[:, sorted_indices]
+
+        self.no_of_evals += self.pop_size
+        self.g += 1
+        if f_best < self.best_fitness:
+            self.best_fitness = f_best
+            self.best_genotype = x_best
+
+        # This operation assumes that if the solution is infeasible, infinity comes in as input.
+        lambF = np.sum(fitness_list < np.finfo(float).max)
+
+        # evolution path p_sigma
+        self.ps = (1 - self.cs) * self.ps + np.sqrt(self.cs * (2. - self.cs) * self.mueff) * (self.z @ self.w_rank)
+        ps_norm = np.linalg.norm(self.ps)
+        # distance weight
+        w_tmp = np.array(
+            [self.w_rank_hat[i] * self.w_dist_hat(np.array(self.z[:, i]), lambF) for i in range(self.pop_size)]).reshape(
+            self.pop_size, 1)
+        weights_dist = w_tmp / sum(w_tmp) - 1. / self.pop_size
+        # switching weights and learning rate
+        weights = weights_dist if ps_norm >= self.chiN else self.w_rank
+        eta_sigma = self.eta_move_sigma if ps_norm >= self.chiN else self.eta_stag_sigma(
+            lambF) if ps_norm >= 0.1 * self.chiN else self.eta_conv_sigma(lambF)
+        # update pc, m
+        wxm = (x - self.m) @ weights
+        self.pc = (1. - self.cc) * self.pc + np.sqrt(self.cc * (2. - self.cc) * self.mueff) * wxm / self.sigma
+        self.m += self.eta_m * wxm
+        # calculate s, t
+        # step1
+        normv4 = self.normv2 ** 2
+        exY = np.append(y, self.pc / self.D, axis=1)  # dim x lamb+1
+        yy = exY * exY  # dim x lamb+1
+        ip_yvbar = self.vbar.T @ exY
+        yvbar = exY * self.vbar  # dim x lamb+1. exYのそれぞれの列にvbarがかかる
+        gammav = 1. + self.normv2
+        vbarbar = self.vbar * self.vbar
+        alphavd = np.min(
+            [1, np.sqrt(normv4 + (2 * gammav - np.sqrt(gammav)) / np.max(vbarbar)) / (2 + self.normv2)])  # scalar
+        t = exY * ip_yvbar - self.vbar * (ip_yvbar ** 2 + gammav) / 2  # dim x lamb+1
+        b = -(1 - alphavd ** 2) * normv4 / gammav + 2 * alphavd ** 2
+        H = np.ones([self.num_params, 1]) * 2 - (b + 2 * alphavd ** 2) * vbarbar  # dim x 1
+        invH = H ** (-1)
+        s_step1 = yy - self.normv2 / gammav * (yvbar * ip_yvbar) - np.ones([self.num_params, self.pop_size + 1])  # dim x lamb+1
+        ip_vbart = self.vbar.T @ t  # 1 x lamb+1
+        s_step2 = s_step1 - alphavd / gammav * ((2 + self.normv2) * (t * self.vbar) - self.normv2 * vbarbar @ ip_vbart)  # dim x lamb+1
+        invHvbarbar = invH * vbarbar
+        ip_s_step2invHvbarbar = invHvbarbar.T @ s_step2  # 1 x lamb+1
+        s = (s_step2 * invH) - b / (
+                1 + b * vbarbar.T @ invHvbarbar) * invHvbarbar @ ip_s_step2invHvbarbar  # dim x lamb+1
+        ip_svbarbar = vbarbar.T @ s  # 1 x lamb+1
+        t = t - alphavd * ((2 + self.normv2) * (s * self.vbar) - self.vbar @ ip_svbarbar)  # dim x lamb+1
+        # update v, D
+        exw = np.append(self.eta_B(lambF) * weights, np.array([self.c1(lambF)]).reshape(1, 1),
+                        axis=0)  # lamb+1 x 1
+        self.v = self.v + (t @ exw) / self.normv
+        self.D = self.D + (s @ exw) * self.D
+        # calculate detA
+        nthrootdetA = np.exp(np.sum(np.log(self.D)) / self.num_params + np.log(1 + self.v.T @ self.v) / (2 * self.num_params))[0][0]
+        self.D = self.D / nthrootdetA
+        # update sigma
+        G_s = np.sum((self.z * self.z - np.ones([self.num_params, self.pop_size])) @ weights) / self.num_params
+        self.sigma = self.sigma * np.exp(eta_sigma / 2 * G_s)
+
+    def result(self):
+        return self.best_genotype, self.best_fitness
+
+
 class NSGAII(PopulationBasedSolver):
 
     def __init__(self, seed, pop_size, genotype_factory, offspring_size: int, remap, genetic_operators,
