@@ -99,9 +99,10 @@ class RandomSearch(PopulationBasedSolver):
         self.best_genotype = None
 
     def ask(self):
-        if self.pop.gen > 0:
-            for g in self.pop.init_random_individuals(n=self.pop_size):
-                self.pop.add_individual(g)
+        if self.pop.gen == 0:
+            self.pop.clear()
+        for g in self.pop.init_random_individuals(n=self.pop_size):
+            self.pop.add_individual(g)
         return [ind.genotype for ind in self.pop]
 
     def tell(self, fitness_list):
