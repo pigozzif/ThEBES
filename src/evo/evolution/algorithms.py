@@ -311,7 +311,7 @@ class CMAES(StochasticSolver):
         return self.solutions
 
     def tell(self, fitness_list):
-        self.es.tell(self.solutions, [-f for f in fitness_list])
+        self.es.tell(self.solutions, [f for f in fitness_list])
 
     def result(self):
         r = self.es.result
