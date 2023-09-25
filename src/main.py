@@ -30,7 +30,7 @@ def parse_args():
 
 def parallel_solve(solver, config, listener):
     best_result = None
-    best_fitness = float("-inf")
+    best_fitness = float("inf")
     start_time = time.time()
     evaluated = 0
     j = 0
@@ -44,15 +44,15 @@ def parallel_solve(solver, config, listener):
         result_g = solutions[result_idx]
         if (j + 1) % config.test_interval == 0:
             logging.warning("fitness at iteration {}: {}".format(j + 1, -result_f))
-        listener.listen(**{"iteration": j, "elapsed.sec": time.time() - start_time,
-                           "evaluations": evaluated, "best.fitness": -result_f, "avg.test": np.nan,
-                           "std.test": np.nan, "best.solution": np.nan})
-        if result_f <= best_fitness or best_result is None:
+        if result_f <= best_fitness:
             best_result = result_g
             best_fitness = result_f
+        listener.listen(**{"iteration": j, "elapsed.sec": time.time() - start_time,
+                           "evaluations": evaluated, "best.fitness": -best_fitness, "avg.test": np.nan,
+                           "std.test": np.nan, "best.solution": "/".join([str(x) for x in best_result])})
         evaluated += len(solutions)
         j += 1
-    test_scores = - np.array(sim.test_solution(solution=result_g))
+    test_scores = - np.array(sim.test_solution(solution=best_result))
     score_avg = np.mean(test_scores)
     score_std = np.std(test_scores)
     listener.listen(**{"iteration": j, "elapsed.sec": time.time() - start_time,

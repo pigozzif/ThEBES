@@ -616,7 +616,10 @@ class ASEBO(StochasticSolver):
         cov = (self.sigma * (self.alpha / self.num_params) * np.eye(self.num_params)
                + ((1 - self.alpha) / int(self.pop_size / 2)) * self.uut
                )
-        chol = np.linalg.cholesky(cov)
+        try:
+            chol = np.linalg.cholesky(cov)
+        except np.linalg.LinAlgError:
+            chol = np.ones_like(cov)
         noise = np.random.normal(loc=0.0, scale=1.0, size=(self.num_params, int(self.pop_size / 2)))
         z_plus = np.swapaxes(chol @ noise, 0, 1)
         z_plus /= np.linalg.norm(z_plus, axis=-1)[:, np.newaxis]
