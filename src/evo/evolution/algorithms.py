@@ -4,10 +4,6 @@ from abc import ABC
 from typing import Dict
 
 import numpy as np
-from sklearn.decomposition import PCA
-from scipy.linalg import cholesky
-from numpy.linalg import LinAlgError
-from numpy.random import standard_normal
 
 from .objectives import ObjectiveDict
 from .operators.operator import GeneticOperator
