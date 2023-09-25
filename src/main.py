@@ -83,7 +83,7 @@ def evaluate(config, solution, seed, render=False):
 
 if __name__ == "__main__":
     args = parse_args()
-    file_name = os.path.join("output", "-".join([args.solver, str(args.s), args.task, str(args.sigma), "txt"]))
+    file_name = os.path.join("output", ".".join([args.solver, str(args.s), args.task, "txt"]))
     listener = FileListener(file_name=file_name, header=["iteration", "elapsed.sec", "evaluations", "best.fitness",
                                                          "avg.test", "std.test", "best.solution"])
     solver = create_solver(config=args)
