@@ -93,3 +93,21 @@ class CarRacing(EnvWrapper):
 
     def reset(self, **kwargs):
         return self.env.reset()
+
+
+class Ant(EnvWrapper):
+
+    def __init__(self):
+        super().__init__("Ant-v4")
+
+    def reset(self, **kwargs):
+        return self.env.reset()
+
+
+class HalfCheetah(EnvWrapper):
+
+    def __init__(self):
+        super().__init__("HalfCheetah-v4")
+
+    def reset(self, **kwargs):
+        return self.env.reset()

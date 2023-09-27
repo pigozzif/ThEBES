@@ -1,7 +1,7 @@
 from policy.policy import ConvPolicy, MLPPolicy
 from evo.evolution.algorithms import OpenAIES, ThEBES, CMAES, RandomSearch, xNES, CRFMNES, sNES, ASEBO
 from evo.evolution.objectives import ObjectiveDict
-from task.envs import CartPoleHard, BipedalWalker, LunarLander, MountainCar, CarRacing
+from task.envs import CartPoleHard, BipedalWalker, LunarLander, MountainCar, CarRacing, Ant, HalfCheetah
 
 
 def is_classic(task):
@@ -91,6 +91,10 @@ def create_task(config):
         return MountainCar()
     elif task_name == "car":
         return CarRacing()
+    elif task_name == "ant":
+        return Ant()
+    elif task_name == "halfcheetah":
+        return HalfCheetah()
     raise ValueError("Invalid task name: {}".format(task_name))
 
 
@@ -115,6 +119,10 @@ def get_number_of_inputs(task):
         return 96 * 96 * 3
     elif task == "mountain":
         return 2
+    elif task == "ant":
+        return 27
+    elif task == "halfcheetah":
+        return 17
     raise ValueError("Invalid task name: {}".format(task))
 
 
@@ -129,6 +137,10 @@ def get_number_of_outputs(task):
         return 3
     elif task == "mountain":
         return 1
+    elif task == "ant":
+        return 8
+    elif task == "halfcheetah":
+        return 6
     raise ValueError("Invalid task name: {}".format(task))
 
 
