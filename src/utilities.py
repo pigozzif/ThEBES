@@ -4,7 +4,7 @@ from evo.evolution.objectives import ObjectiveDict
 from task.envs import CartPoleHard, BipedalWalker, LunarLander, MountainCar, CarRacing, Ant, HalfCheetah
 
 
-NEVERGRAD = ["sphere", "lunacek", "rastrigin", "rosenbrock"]
+NEVERGRAD = ["sphere", "schwefel", "rastrigin", "rosenbrock"]
 
 
 def is_classic(task):
