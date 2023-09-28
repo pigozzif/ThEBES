@@ -4,14 +4,15 @@ import os
 import time
 import logging
 
-import numpy as np
-
 from evo.listeners.listener import FileListener
 from task.sim import SimulationManager
-from utilities import create_task, create_policy, create_solver
+from task.nevergrad import *
+from utilities import create_task, create_policy, create_solver, NEVERGRAD
 
 # cmaes: 0.2 (bipedal), 0.2 (lunar)
 # openes: n/a (bipedal), 0.2 (lunar)
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--s", type=int, default=0, help="seed")
@@ -62,6 +63,8 @@ def parallel_solve(solver, config, listener):
 
 
 def evaluate(config, solution, seed, render=False):
+    if config.task in NEVERGRAD:
+        return eval(config.task + "({})".format(list(solution)))
     env = create_task(config=config)
     env.set_seed(seed)
     policy = create_policy(config=config, env=env)

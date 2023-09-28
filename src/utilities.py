@@ -4,17 +4,19 @@ from evo.evolution.objectives import ObjectiveDict
 from task.envs import CartPoleHard, BipedalWalker, LunarLander, MountainCar, CarRacing, Ant, HalfCheetah
 
 
+NEVERGRAD = ["sphere", "lunacek", "rastrigin", "rosenbrock"]
+
+
 def is_classic(task):
-    return "cartpole" in task or "mountain" in task
+    return "cartpole" in task or "mountain" in task or task in NEVERGRAD
 
 
 def create_solver(config):
     objectives_dict = ObjectiveDict()
-    dummy_env = create_task(config=config)
     objectives_dict.add_objective(name="fitness",
                                   maximize=True,
-                                  best_value=dummy_env.get_max_fitness(),
-                                  worst_value=dummy_env.get_min_fitness())
+                                  best_value=float("inf"),
+                                  worst_value=float("-inf"))
     pop_size = get_pop_size(config)
     num_params = get_number_of_params(config=config)
     if config.solver == "openes":
@@ -145,6 +147,8 @@ def get_number_of_outputs(task):
 
 
 def get_number_of_params(config):
+    if config.task in NEVERGRAD:
+        return 1000
     input_dim = get_number_of_inputs(task=config.task)
     output_dim = get_number_of_outputs(task=config.task)
     if config.task == "car":
