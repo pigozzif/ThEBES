@@ -27,6 +27,8 @@ class MLPPolicy(Policy):
         self.nn = torch.nn.Sequential(
             torch.nn.Linear(in_features=self.input_size, out_features=hidden_size),
             torch.nn.ReLU(),
+            torch.nn.Linear(in_features=hidden_size, out_features=hidden_size),
+            torch.nn.ReLU(),
             torch.nn.Linear(in_features=hidden_size, out_features=self.output_size)
             )
 

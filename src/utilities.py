@@ -153,7 +153,8 @@ def get_number_of_params(config):
     output_dim = get_number_of_outputs(task=config.task)
     if config.task == "car":
         return 1629347
-    return input_dim * config.hidden_size + config.hidden_size + config.hidden_size * output_dim + output_dim
+    return input_dim * config.hidden_size + config.hidden_size + config.hidden_size * config.hidden_size + config.hidden_size \
+           + config.hidden_size * output_dim + output_dim
 
 
 def get_pop_size(config):

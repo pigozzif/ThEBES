@@ -9,6 +9,7 @@ from task.sim import SimulationManager
 from task.nevergrad import *
 from utilities import create_task, create_policy, create_solver, NEVERGRAD
 
+
 # cmaes: 0.2 (bipedal), 0.2 (lunar)
 # openes: n/a (bipedal), 0.2 (lunar)
 
